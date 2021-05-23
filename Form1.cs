@@ -8,193 +8,146 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace CompGraf2
+namespace CompGraf1
 {
     public partial class Form1 : Form
     {
         Graphics g;
-        Timer timer1;
+        private LinkedList<NewObject> stackObjects;
 
-        double a = 0;
-        double alpha = 2*Math.PI / 360;
-
-        NewObject rec = new NewObject(20, 20);
-        static int i = 5;
-        public int ticks;
-        public int interval = 10;
+        NewObject lineShouldBeRemove;
+        NewObject circleShouldBeRemove;
+        NewObject polygonShouldBeRemove;
+        NewObject R_polygonShouldBeRemove;
 
         public Form1()
         {
             InitializeComponent();
-            g = panel1.CreateGraphics();
+            this.stackObjects = new LinkedList<NewObject>();
+            this.g = panelPicture.CreateGraphics();
         }
 
 
-        private void drawFigure_Click(object sender, EventArgs e)
+        public string CheckFields(Label label_message, params TextBox[] textBoxes)
         {
-            SolidBrush b = new SolidBrush(Color.DarkCyan);
-            g.FillRectangle(b, (float)(panel1.Width/2 - rec.width/2), (float)(panel1.Height/2 - rec.height/2),
-                (float)rec.width, (float)rec.height);
-            drawFigure.Enabled = false;
-            rec.StartPoints(panel1, rec);
-        }
-
-
-        public void EnableButtons(bool en)
-        {
-            buttonIncrease.Enabled = en;
-            buttonReduce.Enabled = en;
-            rotation.Enabled = en;
-        }
-
-        public void UpdatePoints(int i)
-        {
-            rec.points[0] = new Point(rec.points[0].X + i, rec.points[0].Y + i);
-            rec.points[1] = new Point(rec.points[1].X - i, rec.points[1].Y + i);
-            rec.points[2] = new Point(rec.points[2].X - i, rec.points[2].Y - i);
-            rec.points[3] = new Point(rec.points[3].X + i, rec.points[3].Y - i);
-        }
-
-        private void buttonIncrease_Click(object sender, EventArgs e)
-        {
-            timer1 = new Timer();
-
-            EnableButtons(false);
-
-            timer1.Interval = interval;
-            timer1.Tick += Timer1_Tick;
-            timer1.Start();
-        }
-
-        private void buttonReduce_Click(object sender, EventArgs e)
-        {
-            timer1 = new Timer();
-            EnableButtons(false);
-
-            timer1.Interval = interval;
-            timer1.Tick += Timer2_Tick;
-            timer1.Start();
-        }
-
-        private void rotation_Click(object sender, EventArgs e)
-        {
-            timer1 = new Timer();
-            EnableButtons(false);
-
-            timer1.Interval = interval;
-            timer1.Tick += Timer3_Tick;
-            timer1.Start();
-        }
-
-        private void Timer3_Tick(object sender, EventArgs e)
-        {
-            if(ticks < 225)
+            foreach (TextBox tb in textBoxes)
             {
-                g.Clear(Color.White);
-                SolidBrush b = new SolidBrush(Color.DarkCyan);
-                double sin = Math.Sin(a);
-                double cos = Math.Cos(a);
-                double size = Math.Sqrt(rec.width * rec.width + rec.height * rec.height) / 2;
-
-                rec.points[0] = new Point((int)Math.Round(panel1.Width/2 + size * Math.Cos(a)),
-                    (int)Math.Round(panel1.Height/2 + size * Math.Sin(a)));
-                rec.points[1] = new Point((int)Math.Round(panel1.Width / 2 + size * Math.Cos(a + Math.PI/2)),
-                    (int)Math.Round(panel1.Height / 2 + size * Math.Sin(a + Math.PI / 2)));
-                rec.points[2] = new Point((int)Math.Round(panel1.Width / 2 + size * Math.Cos(a + Math.PI)),
-                    (int)Math.Round(panel1.Height / 2 + size * Math.Sin(a + Math.PI)));
-                rec.points[3] = new Point((int)Math.Round(panel1.Width / 2 + size * Math.Cos(a + 3*Math.PI / 2)),
-                    (int)Math.Round(panel1.Height / 2 + size * Math.Sin(a + 3*Math.PI / 2)));
-
-                g.FillPolygon(b, rec.points);
-                a += alpha;
-                ticks += 1;
+                if (tb.TextLength == 0)
+                {
+                    label_message.Text = "Не все данные для отрисовки объекта получены!";
+                    return "EMPTY_FIELDS";
+                }
+                try
+                {
+                    int b = int.Parse(tb.Text);
+                }
+                catch (Exception ex)
+                {
+                    label_message.Text = "Необходимо вводить только числа! " + ex;
+                    return "NOT_TEXT";
+                }
             }
-            else
-            {
-                ticks = 0;
-                a = 0;
-                timer1.Stop();
-                EnableButtons(true);
-            }
-
+            label_message.Text = "Все необходимые значения получены:)";
+            return "OK";
         }
 
-        private void Timer2_Tick(object sender, EventArgs e)
+        private void drawLine_Click(object sender, EventArgs e)
         {
-            if (ticks < 10)
+            if (CheckFields(label_message, textBox_X1Line, textBox_Y1Line, textBox_X2Line,
+                textBox_Y2Line, textBox_WLine) == "OK")
             {
-                g.Clear(Color.White);
-                SolidBrush b = new SolidBrush(Color.DarkCyan);
-                rec.width -= i;
-                rec.height -= i;
-
-                UpdatePoints(i);
-
-                g.FillPolygon(b, rec.points);
-                ticks += 1;
-            }
-            else
-            {
-                ticks = 0;
-                timer1.Stop();
-                EnableButtons(true);
-
+                NewObject newLine = new NewObject(textBox_X1Line, textBox_Y1Line, textBox_X2Line,
+                textBox_Y2Line, textBox_WLine);
+                newLine.DrawNewLine(g);
+                lineShouldBeRemove = newLine;
+                stackObjects.AddFirst(newLine);
             }
         }
 
-        private void Timer1_Tick(object Sender, EventArgs e)
+        private void clearLine_Click(object sender, EventArgs e)
         {
-            if (ticks < 10)
+            DeleteObject del = new DeleteObject();
+            lineShouldBeRemove =  del.ReturnShouldBeRemove(stackObjects, lineShouldBeRemove, g, label_message, "LINE");
+        }
+
+        private void buttonDrawCircle_Click(object sender, EventArgs e)
+        {
+            if (CheckFields(label_message, textBox_XCenterCircle, textBox_YCenterCircle,
+            textBox_radiusCircle) == "OK")
             {
-                g.Clear(Color.White);
-                SolidBrush b = new SolidBrush(Color.DarkCyan);
-                rec.width += i;
-                rec.height += i;
-
-                UpdatePoints(-1 * i);
-
-                g.FillPolygon(b, rec.points);
-                ticks += 1;
-            }
-            else
-            {
-                ticks = 0;
-                timer1.Stop();
-                EnableButtons(true);
-
+                NewObject newCircle = new NewObject(textBox_XCenterCircle, textBox_YCenterCircle,
+            textBox_radiusCircle);
+                newCircle.FillNewCircle(g);
+                circleShouldBeRemove = newCircle;
+                stackObjects.AddFirst(newCircle);
             }
         }
 
-        private void buttonFMove_Click(object sender, EventArgs e)
+        private void buttonСlearCircle_Click(object sender, EventArgs e)
         {
-            timer1 = new Timer();
-            EnableButtons(false);
-
-            timer1.Interval = interval;
-            timer1.Tick += Timer4_Tick;
-            timer1.Start();
+            DeleteObject del = new DeleteObject();
+            circleShouldBeRemove = del.ReturnShouldBeRemove(stackObjects, circleShouldBeRemove, g, label_message, "CIRCLE");
         }
 
-        private void Timer4_Tick(object sender, EventArgs e)
+        private void button_addPoint_Click(object sender, EventArgs e)
         {
-            if (ticks < 100)
+            if (CheckFields(label_message, textBox_XPolygon, textBox_YPolygon) == "OK")
             {
-                //y = sin(x)
-                g.Clear(Color.White);
-                SolidBrush b = new SolidBrush(Color.DarkCyan);
-
-                rec.points[0] = new Point((int)(rec.points[0].X+1), (int)(10*Math.Sin((rec.points[0].X)/4)+100));
-
-                g.FillRectangle(b, rec.points[0].X, rec.points[0].Y, 20, 20);
-                ticks += 1;
+                Point pointPolygon = new Point(int.Parse(textBox_XPolygon.Text), int.Parse(textBox_YPolygon.Text));
+                listBox_polygon.Items.Add(pointPolygon);
             }
-            else
+        }
+
+        private void buttonDrawPolygon_Click(object sender, EventArgs e)
+        {
+            if (CheckFields(label_message, textBox_XPolygon, textBox_YPolygon) == "OK")
             {
-                ticks = 0;
-                timer1.Stop();
-                EnableButtons(true);
-
+                if (listBox_polygon.Items.Count > 2)
+                {
+                    Point[] points = listBox_polygon.Items.OfType<Point>().ToArray();
+                    NewObject newPolygon = new NewObject(points);
+                    newPolygon.FillNewPolygon(g);
+                    polygonShouldBeRemove = newPolygon;
+                    stackObjects.AddFirst(newPolygon);
+                    listBox_polygon.Items.Clear();
+                }
+                else
+                {
+                    label_message.Text = "Недостаточно точек для отрисовки многоугольника";
+                }
             }
+        }
+
+        private void buttonClearPolygon_Click(object sender, EventArgs e)
+        {
+            DeleteObject del = new DeleteObject();
+            polygonShouldBeRemove = del.ReturnShouldBeRemove(stackObjects, polygonShouldBeRemove, g, label_message, "POLYGON");
+        }
+
+        private void button_drawRPolygon_Click(object sender, EventArgs e)
+        {
+            if (CheckFields(label_message, textBox_XRPolygon, textBox_YRPolygon,
+                textBox_radiusPolygon, textBox_polygonAngles) == "OK")
+            {
+                if (int.Parse(textBox_polygonAngles.Text) > 2)
+                {
+                    NewObject newRPolygon = new NewObject(textBox_XRPolygon, textBox_YRPolygon,
+                        textBox_radiusPolygon, textBox_polygonAngles);
+                    newRPolygon.FillNewRPolygon(g);
+                    R_polygonShouldBeRemove = newRPolygon;
+                    stackObjects.AddFirst(newRPolygon);
+                }
+                else
+                {
+                    label_message.Text = "Недостаточно точек для отрисовки правильного многоугольника";
+                }
+            }
+        }
+
+        private void button_ClearRPolygon_Click(object sender, EventArgs e)
+        {
+            DeleteObject del = new DeleteObject();
+            R_polygonShouldBeRemove = del.ReturnShouldBeRemove(stackObjects, R_polygonShouldBeRemove, g, label_message, "R_POLYGON");
         }
     }
 
